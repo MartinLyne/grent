@@ -14,6 +14,18 @@ cargo build --release
 ./target/release/agent-response --count -- your-command
 ```
 
+Both `agent-response` and `ar` are built from the same implementation:
+
+```sh
+./target/release/ar -- your-command
+./target/release/ar --filter 'warn|err' -- your-command
+./target/release/ar --filter '*' -- your-command
+```
+
+`ar` also names the standard archive utility. Use the explicit path or an
+isolated agent environment to avoid shadowing it in build tools. To install
+only the long name, use `cargo install --path . --bin agent-response`.
+
 Pass the executable and its arguments after `--`. The wrapper does not interpret
 shell syntax; explicitly invoke a shell if needed.
 

@@ -3,6 +3,7 @@ name = "agent-response"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.79"
+default-run = "agent-response"
 
 [dependencies]
 regex = "=1.10.6"
