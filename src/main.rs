@@ -1,4 +1,4 @@
-use agent_response::{capture, Matcher, CAPTURE_LIMIT, DEFAULT_PATTERN};
+use grent::{capture, Matcher, CAPTURE_LIMIT, DEFAULT_PATTERN};
 use std::{
     env,
     ffi::OsString,
@@ -11,7 +11,7 @@ fn main() {
     let code = match run() {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("agent-response: {e}");
+            eprintln!("grent: {e}");
             125
         }
     };
@@ -43,7 +43,7 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
                     .map_err(|_| "pattern must be UTF-8")?
             }
             Some("--help") | Some("-h") => {
-                println!("Usage: agent-response [--pattern PATTERN] [--regex|--literal] [--no-stdout] [--count] [--failure-only] -- COMMAND [ARGS...]\n\nDefault: success prints only ok; failure shows stderr plus stdout matching err|arning. --filter/--pattern selects logs from both streams on success, without ok. --filter '*' passes through all output (quote the star). --literal treats * literally. --count prints selected stdout line count on success. --failure-only overrides filtered success output. Wrapper errors exit 125; child exit codes are preserved.");
+                println!("Usage: grent (or agent-response) [--pattern PATTERN] [--regex|--literal] [--no-stdout] [--count] [--failure-only] -- COMMAND [ARGS...]\n\nDefault: success prints only ok; failure shows stderr plus stdout matching err|arning. --filter/--pattern selects logs from both streams on success, without ok. --filter '*' passes through all output (quote the star). --literal treats * literally. --count prints selected stdout line count on success. --failure-only overrides filtered success output. Wrapper errors exit 125; child exit codes are preserved.");
                 return Ok(0);
             }
             _ => return Err(format!("unknown option {:?}; use -- before the command", arg).into()),
@@ -89,19 +89,16 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
             }
         }
         if err.truncated {
-            writeln!(
-                dest,
-                "agent-response: stderr truncated at {CAPTURE_LIMIT} bytes"
-            )?;
+            writeln!(dest, "grent: stderr truncated at {CAPTURE_LIMIT} bytes")?;
         }
         if out.truncated {
             writeln!(
                 dest,
-                "agent-response: stdout truncated; diagnostics/count may be incomplete"
+                "grent: stdout truncated; diagnostics/count may be incomplete"
             )?;
         }
         if !status.success() {
-            writeln!(dest, "agent-response: command {status}")?;
+            writeln!(dest, "grent: command {status}")?;
         }
     }
     if status.success() {
@@ -115,7 +112,7 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
             io::stdout().lock().write_all(&out.bytes)?;
             io::stderr().lock().write_all(&selected_err.bytes)?;
             if out.truncated || err.truncated || selected_err.truncated {
-                eprintln!("agent-response: filtered output truncated");
+                eprintln!("grent: filtered output truncated");
             }
         } else {
             writeln!(io::stdout().lock(), "ok")?;

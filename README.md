@@ -1,4 +1,4 @@
-# agent-response
+# grent
 
 A small Rust command wrapper that returns predictable, compact responses to agents.
 
@@ -14,17 +14,17 @@ cargo build --release
 ./target/release/agent-response --count -- your-command
 ```
 
-Both `agent-response` and `ar` are built from the same implementation:
+Both `grent` and `agent-response` are built from the same implementation:
 
 ```sh
-./target/release/ar -- your-command
-./target/release/ar --filter 'warn|err' -- your-command
-./target/release/ar --filter '*' -- your-command
+./target/release/grent -- your-command
+./target/release/grent --filter 'warn|err' -- your-command
+./target/release/grent --filter '*' -- your-command
 ```
 
-`ar` also names the standard archive utility. Use the explicit path or an
-isolated agent environment to avoid shadowing it in build tools. To install
-only the long name, use `cargo install --path . --bin agent-response`.
+`grent` is the default executable; `agent-response` is the descriptive alternative.
+`cargo run -- ...` uses `grent`. Install both with `cargo install --path .`, or
+select one with `--bin grent` or `--bin agent-response`.
 
 Pass the executable and its arguments after `--`. The wrapper does not interpret
 shell syntax; explicitly invoke a shell if needed.

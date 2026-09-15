@@ -1,9 +1,9 @@
 [package]
-name = "agent-response"
+name = "grent"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.79"
-default-run = "agent-response"
+default-run = "grent"
 
 [dependencies]
 regex = "=1.10.6"

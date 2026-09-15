@@ -1,4 +1,4 @@
-use agent_response::{capture, Matcher, DEFAULT_PATTERN};
+use grent::{capture, Matcher, DEFAULT_PATTERN};
 use std::io::{self, Read};
 fn default_matcher() -> Matcher {
     Matcher::new(DEFAULT_PATTERN, false, false).unwrap()
