@@ -20,6 +20,7 @@ fn main() {
 fn run() -> Result<i32, Box<dyn std::error::Error>> {
     let mut args = env::args_os().skip(1);
     let mut pattern = DEFAULT_PATTERN.to_string();
+    let mut explicit_filter = false;
     let (mut literal, mut off, mut count, mut failure_only) = (false, false, false, false);
     let mut command: Vec<OsString> = Vec::new();
     while let Some(arg) = args.next() {
@@ -33,7 +34,8 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
             Some("--no-stdout") => off = true,
             Some("--count") => count = true,
             Some("--failure-only") => failure_only = true,
-            Some("--pattern") => {
+            Some("--pattern") | Some("--filter") => {
+                explicit_filter = true;
                 pattern = args
                     .next()
                     .ok_or("--pattern needs a value")?
@@ -41,7 +43,7 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
                     .map_err(|_| "pattern must be UTF-8")?
             }
             Some("--help") | Some("-h") => {
-                println!("Usage: agent-response [--pattern PATTERN] [--regex|--literal] [--no-stdout] [--count] [--failure-only] -- COMMAND [ARGS...]\n\nDefault: case-insensitive regex err|arning. Always emit stderr and selected stdout to stderr; print ok on success. --count prints selected stdout line count on success. --failure-only suppresses diagnostics on success. Wrapper errors exit 125; child exit codes are preserved.");
+                println!("Usage: agent-response [--pattern PATTERN] [--regex|--literal] [--no-stdout] [--count] [--failure-only] -- COMMAND [ARGS...]\n\nDefault: success prints only ok; failure shows stderr plus stdout matching err|arning. --filter/--pattern selects logs from both streams on success, without ok. --filter '*' passes through all output (quote the star). --literal treats * literally. --count prints selected stdout line count on success. --failure-only overrides filtered success output. Wrapper errors exit 125; child exit codes are preserved.");
                 return Ok(0);
             }
             _ => return Err(format!("unknown option {:?}; use -- before the command", arg).into()),
@@ -50,7 +52,14 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
     if command.is_empty() {
         return Err("missing command after --".into());
     }
-    let matcher = Matcher::new(&pattern, literal, off)?;
+    let all = explicit_filter && pattern == "*" && !literal;
+    if all && !count && !failure_only && !off {
+        let status = Command::new(&command[0]).args(&command[1..]).status()?;
+        return Ok(exit_code(status));
+    }
+    let effective_pattern = if all { "" } else { &pattern };
+    let matcher = Matcher::new(effective_pattern, literal, off)?;
+    let success_matcher = Matcher::new(effective_pattern, literal, false)?;
     let mut child = Command::new(&command[0])
         .args(&command[1..])
         .stdin(Stdio::inherit())
@@ -66,7 +75,7 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
     let err_result = err_worker.join().map_err(|_| "stderr reader panicked")?;
     let out = out_result?;
     let err = err_result?;
-    if !status.success() || !failure_only {
+    if !status.success() {
         let mut dest = io::stderr().lock();
         dest.write_all(&err.bytes)?;
         if !err.bytes.is_empty() && !err.bytes.ends_with(b"\n") {
@@ -101,19 +110,29 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
                 return Err("cannot report an exact count after stdout truncation".into());
             }
             writeln!(io::stdout().lock(), "{}", out.matched_lines)?;
+        } else if explicit_filter && !failure_only {
+            let selected_err = capture(&err.bytes[..], Some(&success_matcher), CAPTURE_LIMIT)?;
+            io::stdout().lock().write_all(&out.bytes)?;
+            io::stderr().lock().write_all(&selected_err.bytes)?;
+            if out.truncated || err.truncated || selected_err.truncated {
+                eprintln!("agent-response: filtered output truncated");
+            }
         } else {
             writeln!(io::stdout().lock(), "ok")?;
         }
     }
+    Ok(exit_code(status))
+}
+fn exit_code(status: std::process::ExitStatus) -> i32 {
     #[cfg(unix)]
     {
         use std::os::unix::process::ExitStatusExt;
-        Ok(status
+        status
             .code()
-            .unwrap_or_else(|| 128 + status.signal().unwrap_or(0)))
+            .unwrap_or_else(|| 128 + status.signal().unwrap_or(0))
     }
     #[cfg(not(unix))]
     {
-        Ok(status.code().unwrap_or(125))
+        status.code().unwrap_or(125)
     }
 }

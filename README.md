@@ -19,32 +19,54 @@ shell syntax; explicitly invoke a shell if needed.
 
 ## Response contract
 
-- On success, stdout is `ok\n`, or the selected stdout **line count** with `--count`.
-- On failure, stdout is empty. The child exit code is preserved. On Unix, signal
-  termination maps to `128 + signal`. Wrapper errors use 125 (which a child may
-  also return; wrapper diagnostics identify their source).
-- Stderr is retained, followed by stdout lines matching the case-insensitive
-  byte regex `err|arning`, under a `[stdout diagnostics]` heading. This pattern
-  deliberately matches substrings, including `berry`; it is not semantic error
-  detection. Matching a diagnostic does not change a successful child status.
-- `--pattern PATTERN` changes the selector. `--literal` treats it as literal text;
-  `--regex` selects regex interpretation (the default). Last mode flag wins.
-  Matching is ASCII case-insensitive; regex inline flags can override this.
-- `--no-stdout` disables stdout selection. `--failure-only` suppresses all
-  diagnostics when the child succeeds. Default behavior shows diagnostics on
-  success as well as failure.
+| Invocation | Successful command | Failed command |
+| --- | --- | --- |
+| Default | Only `ok` on stdout | Smart-merge diagnostics on stderr |
+| `--filter PATTERN` (alias `--pattern`) | Matching lines from both streams, on their original streams; no `ok` | All stderr plus matching stdout on stderr |
+| `--filter '*'` | All output passed through unchanged | All output passed through unchanged |
+| `--count` | Selected stdout line count only | Smart-merge diagnostics on stderr |
+
+- Default failure selection is the case-insensitive byte regex `err|arning`.
+  Stderr is retained, followed by selected stdout under `[stdout diagnostics]`.
+  This deliberately matches substrings, including `berry`; it is not semantic
+  error detection. Matching a diagnostic does not change the child exit status.
+- Explicit filters select successful logs from **both** stdout and stderr.
+  No matches produces empty output with exit 0. Default success suppresses all
+  child output, including warnings on stderr.
+- `--literal` treats the pattern as literal text; `--regex` selects regex
+  interpretation (the default). Last mode flag wins. Matching is ASCII
+  case-insensitive; regex inline flags can override this.
+- A standalone `*` in regex mode is special: it means all output, not a regex
+  quantifier. Quote it to prevent shell expansion. `--literal --filter '*'`
+  searches for actual asterisks.
+- `--no-stdout` disables stdout selection. `--failure-only` overrides filtered
+  success output, restoring `ok`. `--count` takes precedence over log output.
 - Count means selected stdout lines, not occurrences, files, or a tool's own
-  count. A separate search adapter would be needed for search-specific counts.
+  count. With `--filter '*' --count`, all stdout lines are counted. A separate
+  search adapter would be needed for search-specific counts.
+- Child exit codes are preserved. On Unix, signal termination maps to
+  `128 + signal`. Wrapper errors use 125 (which a child may also return;
+  wrapper diagnostics identify their source).
 - Regexes are validated before launching the child. Invalid regex, spawn,
   capture, or output errors produce wrapper failures.
 
+```sh
+agent-response -- your-command                    # success: ok
+agent-response --filter 'warn|err' -- your-command # success: matching logs
+agent-response --filter '*' -- your-command        # normal command output
+```
+
 ## Boundaries
 
-Both streams are drained concurrently to avoid pipe-capacity deadlock. Each
+Unmodified `--filter '*'` inherits the command's output streams directly, with
+no capture limit, added headers, or completion buffering. Combining it with
+`--count`, `--failure-only`, or `--no-stdout` uses capture instead.
+
+In capture modes, both streams are drained concurrently to avoid pipe-capacity deadlock. Each
 retains at most 1 MiB; stdout also has a 1 MiB per-line buffer. Truncation is
-reported. For an oversized line, only its retained prefix is searched, so later
+reported when logs are shown; ordinary success still returns only `ok`. For an oversized line, only its retained prefix is searched, so later
 matches can be omitted; `--count` refuses to report an exact result after any
-stdout truncation. Output is grouped stderr-first, not chronological or deduplicated.
+stdout truncation. Failure output is grouped stderr-first, not chronological or deduplicated.
 No stack-trace continuation lines are inferred. Arbitrary output bytes are
 preserved, including terminal escape sequences.
 

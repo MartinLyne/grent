@@ -15,10 +15,7 @@ fn success_and_failure_contract() {
     );
     assert!(out.status.success());
     assert_eq!(out.stdout, b"ok\n");
-    assert_eq!(
-        out.stderr,
-        b"stderr detail\n[stdout diagnostics]\nwarning: stdout\n"
-    );
+    assert!(out.stderr.is_empty());
     let failed = run(
         &[],
         "printf 'normal\\nERROR useful\\n'; printf 'bad\\n' >&2; exit 7",
@@ -41,7 +38,7 @@ fn options_counts_and_signals() {
     assert!(run(&["--no-stdout"], "printf error").stderr.is_empty());
     assert!(
         run(&["--literal", "--pattern", "a|b"], "printf 'a\\na|b\\n'")
-            .stderr
+            .stdout
             .ends_with(b"a|b\n")
     );
     assert_eq!(run(&[], "kill -TERM $$").status.code(), Some(143));
@@ -72,4 +69,44 @@ fn concurrent_large_pipes_do_not_deadlock() {
     let count = run(&["--count"], "head -c 1200000 /dev/zero");
     assert_eq!(count.status.code(), Some(125));
     assert!(count.stdout.is_empty());
+}
+
+#[test]
+fn explicit_filters_select_both_streams_without_ok() {
+    let out = run(
+        &["--filter", "warn"],
+        "printf 'noise\nWARNING chosen\n'; printf 'noise\nwarning stderr' >&2",
+    );
+    assert!(out.status.success());
+    assert_eq!(out.stdout, b"WARNING chosen\n");
+    assert_eq!(out.stderr, b"warning stderr");
+    let empty = run(&["--filter", "absent"], "printf noise; printf noise >&2");
+    assert!(empty.status.success());
+    assert!(empty.stdout.is_empty());
+    assert!(empty.stderr.is_empty());
+    let quiet = run(
+        &["--filter", "*", "--failure-only"],
+        "printf warning; printf error >&2",
+    );
+    assert_eq!(quiet.stdout, b"ok\n");
+    assert!(quiet.stderr.is_empty());
+}
+#[test]
+fn wildcard_is_real_passthrough_including_large_output_and_failure() {
+    let out = run(
+        &["--filter", "*"],
+        "printf 'noise\nwarning'; printf 'stderr' >&2; exit 7",
+    );
+    assert_eq!(out.status.code(), Some(7));
+    assert_eq!(out.stdout, b"noise\nwarning");
+    assert_eq!(out.stderr, b"stderr");
+    let large = run(&["--filter", "*"], "head -c 1200000 /dev/zero");
+    assert!(large.status.success());
+    assert_eq!(large.stdout.len(), 1200000);
+    assert!(large.stderr.is_empty());
+    let literal = run(&["--literal", "--filter", "*"], "printf 'normal\na*b\n'");
+    assert_eq!(literal.stdout, b"a*b\n");
+    let count = run(&["--filter", "*", "--count"], "printf 'normal\nwarning\n'");
+    assert_eq!(count.stdout, b"2\n");
+    assert!(count.stderr.is_empty());
 }
