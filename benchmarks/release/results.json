@@ -1,0 +1,548 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "trials": 3,
+    "python": "3.13.7",
+    "platform": "Darwin 25.6.0 arm64",
+    "tokenizer": "tiktoken 0.14.0 / o200k_base",
+    "binary_sha256": "af1c80b9fed4b57e4f7f6201b4cf99db973a742431bcb57d23de48a3e26922f6",
+    "source_sha256": {
+      "Cargo.lock": "a0190cacee596192791d7e4b195969c99d3fdb17624098cfdeb0d678daa0b322",
+      "Cargo.toml": "8589ffc63767620b3c9a1f24c0b5a52e0ed1e56c05e253cb397164fcbb1db238",
+      "benchmarks/release_suite.py": "704ad7be878cdfddd4dab094a4bf5d7eefa7feaf631dc34ba440aaf0b015700a",
+      "src/bin/agent-response.rs": "e8569a52ac85a24f7e78090688d89f3330f3deebb70b3c62a0a4e3bfc170b342",
+      "src/lib.rs": "1d73e83ab204fa8547b3aaa7300eb07e7da0ba5c6b9b9759d5dafb36a2b2ab7c",
+      "src/main.rs": "c12c0c9495fc7d823c889b31644276297258de99e3d2dbf68ee6db3e4e65672b",
+      "src/query.rs": "1cb4e868b354562ab59da1977661143e2c79c7a4b450d0dcc5e99381df1f5873",
+      "src/runner.rs": "b99b5446cd219e960bf0fbf50d70fb64d66e04f7f0e2194b3c14f1366c5fb25f",
+      "src/store.rs": "5862c9696ca72d20a84c0aac919d4db417dd8d3394224cd98741efd4b6c19932"
+    },
+    "rustc": "rustc 1.79.0 (129f3b996 2024-06-10)",
+    "correctness_checks": [
+      "500-line fixture succeeds",
+      "check returns ok",
+      "count returns 10 matching lines",
+      "exists returns true",
+      "preview returns 20 lines and truncation marker",
+      "retained query returns count 10",
+      "retained and file-control commands execute once; rerun baseline executes twice",
+      "exit code 7 and both failure diagnostic streams survive"
+    ],
+    "measurement": "Wall time includes process startup. Tokens count returned stdout/stderr independently, not tool envelopes, prompts, reasoning, cached input, or billed usage. Raw token counts include opaque run IDs; normalized counts replace them."
+  },
+  "runs": [
+    {
+      "group": "successful_check",
+      "variant": "ordinary",
+      "trial": 1,
+      "elapsed_ms": 26.143,
+      "stdout_bytes": 10500,
+      "stderr_bytes": 0,
+      "output_tokens": 4000,
+      "normalized_output_tokens": 4000,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "shell_quiet",
+      "trial": 1,
+      "elapsed_ms": 28.17,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "grent",
+      "trial": 1,
+      "elapsed_ms": 38.503,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "local_reduction",
+      "trial": 1,
+      "elapsed_ms": 50.104,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "grent",
+      "trial": 1,
+      "elapsed_ms": 34.076,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "local_reduction",
+      "trial": 1,
+      "elapsed_ms": 51.963,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "grent",
+      "trial": 1,
+      "elapsed_ms": 34.398,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "rerun",
+      "trial": 1,
+      "elapsed_ms": 103.032,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 2,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "capture_once",
+      "trial": 1,
+      "elapsed_ms": 78.141,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "grent",
+      "trial": 1,
+      "elapsed_ms": 38.519,
+      "stdout_bytes": 720,
+      "stderr_bytes": 0,
+      "output_tokens": 254,
+      "normalized_output_tokens": 240,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "ordinary",
+      "trial": 1,
+      "elapsed_ms": 22.567,
+      "stdout_bytes": 10535,
+      "stderr_bytes": 29,
+      "output_tokens": 4012,
+      "normalized_output_tokens": 4012,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "grent",
+      "trial": 1,
+      "elapsed_ms": 33.432,
+      "stdout_bytes": 0,
+      "stderr_bytes": 122,
+      "output_tokens": 35,
+      "normalized_output_tokens": 35,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "ordinary",
+      "trial": 2,
+      "elapsed_ms": 23.341,
+      "stdout_bytes": 10500,
+      "stderr_bytes": 0,
+      "output_tokens": 4000,
+      "normalized_output_tokens": 4000,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "shell_quiet",
+      "trial": 2,
+      "elapsed_ms": 26.953,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "grent",
+      "trial": 2,
+      "elapsed_ms": 32.577,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "local_reduction",
+      "trial": 2,
+      "elapsed_ms": 51.181,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "grent",
+      "trial": 2,
+      "elapsed_ms": 33.359,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "local_reduction",
+      "trial": 2,
+      "elapsed_ms": 50.253,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "grent",
+      "trial": 2,
+      "elapsed_ms": 33.942,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "rerun",
+      "trial": 2,
+      "elapsed_ms": 103.365,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 2,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "capture_once",
+      "trial": 2,
+      "elapsed_ms": 81.184,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "grent",
+      "trial": 2,
+      "elapsed_ms": 37.696,
+      "stdout_bytes": 720,
+      "stderr_bytes": 0,
+      "output_tokens": 250,
+      "normalized_output_tokens": 240,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "ordinary",
+      "trial": 2,
+      "elapsed_ms": 22.668,
+      "stdout_bytes": 10535,
+      "stderr_bytes": 29,
+      "output_tokens": 4012,
+      "normalized_output_tokens": 4012,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "grent",
+      "trial": 2,
+      "elapsed_ms": 33.681,
+      "stdout_bytes": 0,
+      "stderr_bytes": 122,
+      "output_tokens": 35,
+      "normalized_output_tokens": 35,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "ordinary",
+      "trial": 3,
+      "elapsed_ms": 23.182,
+      "stdout_bytes": 10500,
+      "stderr_bytes": 0,
+      "output_tokens": 4000,
+      "normalized_output_tokens": 4000,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "shell_quiet",
+      "trial": 3,
+      "elapsed_ms": 27.169,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "successful_check",
+      "variant": "grent",
+      "trial": 3,
+      "elapsed_ms": 33.472,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "local_reduction",
+      "trial": 3,
+      "elapsed_ms": 50.339,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "count",
+      "variant": "grent",
+      "trial": 3,
+      "elapsed_ms": 33.734,
+      "stdout_bytes": 3,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "local_reduction",
+      "trial": 3,
+      "elapsed_ms": 50.807,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "exists",
+      "variant": "grent",
+      "trial": 3,
+      "elapsed_ms": 34.087,
+      "stdout_bytes": 5,
+      "stderr_bytes": 0,
+      "output_tokens": 2,
+      "normalized_output_tokens": 2,
+      "command_executions": 1,
+      "exit_codes": [
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "rerun",
+      "trial": 3,
+      "elapsed_ms": 101.77,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 2,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "capture_once",
+      "trial": 3,
+      "elapsed_ms": 78.103,
+      "stdout_bytes": 423,
+      "stderr_bytes": 0,
+      "output_tokens": 162,
+      "normalized_output_tokens": 162,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "preview_then_count",
+      "variant": "grent",
+      "trial": 3,
+      "elapsed_ms": 36.585,
+      "stdout_bytes": 720,
+      "stderr_bytes": 0,
+      "output_tokens": 252,
+      "normalized_output_tokens": 240,
+      "command_executions": 1,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "ordinary",
+      "trial": 3,
+      "elapsed_ms": 22.931,
+      "stdout_bytes": 10535,
+      "stderr_bytes": 29,
+      "output_tokens": 4012,
+      "normalized_output_tokens": 4012,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    },
+    {
+      "group": "failure_diagnostics",
+      "variant": "grent",
+      "trial": 3,
+      "elapsed_ms": 33.382,
+      "stdout_bytes": 0,
+      "stderr_bytes": 122,
+      "output_tokens": 35,
+      "normalized_output_tokens": 35,
+      "command_executions": 1,
+      "exit_codes": [
+        7
+      ]
+    }
+  ]
+}

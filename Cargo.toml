@@ -1,9 +1,15 @@
 [package]
 name = "grent"
 version = "0.1.0"
+description = "Explicit command results and retained logs for coding agents"
+license = "MIT"
+repository = "https://github.com/MartinLyne/grent"
 edition = "2021"
 rust-version = "1.79"
 default-run = "grent"
 
 [dependencies]
 regex = "=1.10.6"
+serde_json = "1.0"
+libc = "0.2"
+signal-hook = "0.3"

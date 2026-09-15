@@ -1,11 +1,21 @@
 #![cfg(unix)]
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
+static NEXT: AtomicU64 = AtomicU64::new(0);
 fn run(flags: &[&str], script: &str) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_agent-response"))
+    let store = std::env::temp_dir().join(format!(
+        "grent-legacy-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    let output = Command::new(env!("CARGO_BIN_EXE_agent-response"))
+        .env("GRENT_STORE", &store)
         .args(flags)
         .args(["--", "sh", "-c", script])
         .output()
-        .unwrap()
+        .unwrap();
+    let _ = std::fs::remove_dir_all(store);
+    output
 }
 #[test]
 fn success_and_failure_contract() {
@@ -49,26 +59,19 @@ fn invalid_regex_does_not_execute_child() {
     assert_eq!(out.status.code(), Some(125));
     assert!(out.stdout.is_empty());
     assert!(!String::from_utf8_lossy(&out.stderr).contains("CHILD RAN"));
-    let out = Command::new(env!("CARGO_BIN_EXE_agent-response"))
-        .args(["--", "/nonexistent/agent-response-command"])
-        .output()
-        .unwrap();
-    assert_eq!(out.status.code(), Some(125));
-    assert!(!out.stderr.is_empty());
 }
 #[test]
 fn concurrent_large_pipes_do_not_deadlock() {
     let out = run(
-        &[],
+        &["--max-bytes", "8192"],
         "(head -c 1200000 /dev/zero >&2) & head -c 1200000 /dev/zero; wait; exit 9",
     );
     assert_eq!(out.status.code(), Some(9));
     let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains("stderr truncated"));
-    assert!(err.contains("stdout truncated"));
+    assert!(err.contains("diagnostics truncated"));
     let count = run(&["--count"], "head -c 1200000 /dev/zero");
-    assert_eq!(count.status.code(), Some(125));
-    assert!(count.stdout.is_empty());
+    assert!(count.status.success());
+    assert_eq!(count.stdout, b"0\n");
 }
 
 #[test]

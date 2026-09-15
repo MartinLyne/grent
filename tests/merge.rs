@@ -1,75 +1,55 @@
-use grent::{capture, Matcher, DEFAULT_PATTERN};
-use std::io::{self, Read};
-fn default_matcher() -> Matcher {
-    Matcher::new(DEFAULT_PATTERN, false, false).unwrap()
-}
+use grent::{
+    query::{select_reader, Mode},
+    Matcher, DEFAULT_PATTERN,
+};
+use std::io::{self, BufReader, Read};
 
 #[test]
-fn explicit_diagnostics() {
-    let input = b"normal\nERROR failed\r\nwarning: careful\nERR\nWarning\nlast error";
-    let out = capture(&input[..], Some(&default_matcher()), 1024).unwrap();
-    assert_eq!(
-        out.bytes,
-        b"ERROR failed\r\nwarning: careful\nERR\nWarning\nlast error"
-    );
-    assert_eq!(out.matched_lines, 5);
-    assert!(!out.truncated);
-}
-#[test]
-fn binary_empty_and_modes() {
-    let regex = Matcher::new("^error", false, false).unwrap();
-    assert!(regex.matches(b"ERROR\xff"));
-    assert!(!regex.matches(b"an error"));
+fn matching_is_literal_or_regex_with_binary_support() {
+    let regex = Matcher::new("^error$", false, false).unwrap();
+    let selected = select_reader(
+        &b"ERROR\r\nnot error\n"[..],
+        &regex,
+        Mode::Preview,
+        0,
+        20,
+        100,
+    )
+    .unwrap();
+    assert_eq!(selected.output, b"ERROR\r\n");
     let literal = Matcher::new("err|arning", true, false).unwrap();
     assert!(literal.matches(b"ERR|ARNING"));
     assert!(!literal.matches(b"error"));
-    assert!(!Matcher::new("[", false, true).unwrap().matches(b"error"));
     assert!(Matcher::new("[", false, false).is_err());
     assert!(Matcher::new("", true, false).unwrap().matches(b""));
-    assert_eq!(
-        capture(&b""[..], Some(&default_matcher()), 10)
-            .unwrap()
-            .matched_lines,
-        0
-    );
-    let raw = b"\xff\0stderr without newline";
-    assert_eq!(capture(&raw[..], None, 100).unwrap().bytes, raw);
-}
-#[test]
-fn bounded_capture_reports_loss() {
-    let out = capture(
-        &b"error0123456789\nwarning\n"[..],
-        Some(&default_matcher()),
-        8,
-    )
-    .unwrap();
-    assert!(out.truncated);
-    assert!(out.bytes.len() <= 8);
-    assert_eq!(out.matched_lines, 2);
-    let raw = capture(&b"123456789"[..], None, 8).unwrap();
-    assert_eq!(raw.bytes, b"12345678");
-    assert!(raw.truncated);
-    assert!(
-        capture(&b"error"[..], Some(&default_matcher()), 0)
-            .unwrap()
-            .truncated
-    );
+    assert!(!Matcher::new("[", false, true).unwrap().matches(b"error"));
+    assert!(Matcher::new("error", false, false)
+        .unwrap()
+        .matches(b"\xfferror\0"));
 }
 struct Broken;
 impl Read for Broken {
     fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
-        Err(io::Error::new(io::ErrorKind::Other, "read failed"))
+        Err(io::Error::other("read failed"))
     }
 }
 #[test]
 fn read_errors_propagate() {
-    assert!(capture(Broken, None, 10).is_err());
+    assert!(select_reader(
+        BufReader::new(Broken),
+        &Matcher::new("", false, false).unwrap(),
+        Mode::Count,
+        0,
+        20,
+        100
+    )
+    .is_err());
 }
 
-// Deterministic fuzz/property test: arbitrary bytes, injected matches, random
-// stream chunk boundaries, and a separate literal oracle for the default regex.
+// Seeded property-style fuzzing of the actual retained-result selection engine.
+// The independent oracle uses literal byte searches, not the regex implementation.
 #[test]
-fn fuzz_bytes_and_chunk_boundaries() {
+fn ten_thousand_random_byte_streams_match_independent_oracle() {
     struct Chunks<'a> {
         bytes: &'a [u8],
         chunk: usize,
@@ -82,43 +62,60 @@ fn fuzz_bytes_and_chunk_boundaries() {
             Ok(n)
         }
     }
-    let matcher = default_matcher();
+    let matcher = Matcher::new(DEFAULT_PATTERN, false, false).unwrap();
     let mut seed = 0x123456789abcdefu64;
-    fn next(s: &mut u64) -> u64 {
-        *s ^= *s << 13;
-        *s ^= *s >> 7;
-        *s ^= *s << 17;
-        *s
+    fn next(seed: &mut u64) -> u64 {
+        *seed ^= *seed << 13;
+        *seed ^= *seed >> 7;
+        *seed ^= *seed << 17;
+        *seed
     }
-    for iteration in 0..10000 {
+    for case in 0..10000 {
         let len = (next(&mut seed) % 512) as usize;
         let mut input: Vec<u8> = (0..len).map(|_| next(&mut seed) as u8).collect();
-        if iteration % 2 == 0 {
+        if case % 2 == 0 {
             input.extend_from_slice(b"\nWaRnInG\xff\nnoise\nERR");
         }
-        let mut expected = Vec::new();
-        let mut count = 0;
-        for line in input.split_inclusive(|b| *b == b'\n') {
-            let lower = line.to_ascii_lowercase();
-            if lower.windows(3).any(|w| w == b"err") || lower.windows(6).any(|w| w == b"arning") {
-                expected.extend_from_slice(line);
-                count += 1;
-            }
-        }
-        let out = capture(
-            Chunks {
+        let matched: Vec<&[u8]> = input
+            .split_inclusive(|b| *b == b'\n')
+            .filter(|line| {
+                let lower = line.to_ascii_lowercase();
+                lower.windows(3).any(|v| v == b"err") || lower.windows(6).any(|v| v == b"arning")
+            })
+            .collect();
+        let offset = (next(&mut seed) % 4) as usize;
+        let lines = (next(&mut seed) % 6) as usize;
+        let cap = (next(&mut seed) % 64) as usize;
+        let chunk = (next(&mut seed) % 31 + 1) as usize;
+        let available: Vec<u8> = matched
+            .iter()
+            .skip(offset)
+            .take(lines)
+            .flat_map(|x| x.iter().copied())
+            .collect();
+        let expected = &available[..available.len().min(cap)];
+        let result = select_reader(
+            BufReader::new(Chunks {
                 bytes: &input,
-                chunk: (next(&mut seed) % 31 + 1) as usize,
-            },
-            Some(&matcher),
-            4096,
+                chunk,
+            }),
+            &matcher,
+            Mode::Preview,
+            offset as u64,
+            lines as u64,
+            cap,
         )
         .unwrap();
-        assert_eq!(out.bytes, expected, "iteration {iteration}");
-        assert_eq!(out.matched_lines, count);
-        assert!(!out.truncated);
-        let cap = (next(&mut seed) % 64) as usize;
-        let bounded = capture(&input[..], Some(&matcher), cap).unwrap();
-        assert!(bounded.bytes.len() <= cap);
+        assert_eq!(result.count, matched.len() as u64, "case {case}");
+        assert_eq!(result.output, expected, "case {case}");
+        assert_eq!(
+            result.truncated,
+            matched.len() > offset + lines || available.len() > cap,
+            "case {case}"
+        );
+        let count = select_reader(&input[..], &matcher, Mode::Count, 0, 0, 0).unwrap();
+        assert_eq!(count.count, matched.len() as u64);
+        let exists = select_reader(&input[..], &matcher, Mode::Exists, 0, 0, 0).unwrap();
+        assert_eq!(exists.count > 0, !matched.is_empty());
     }
 }
